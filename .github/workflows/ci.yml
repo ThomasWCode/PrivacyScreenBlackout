@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # The runner image ships an Android SDK in $ANDROID_HOME; only add the platform this project compiles against.
+      - name: Install SDK platform
+        run: |
+          SDKMANAGER=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-37.0"
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # Checks only: no APK is uploaded or released.
+      - name: Lint, test and build
+        run: ./gradlew lintDebug testDebugUnitTest assembleDebug
