@@ -25,6 +25,9 @@ data class Settings(
     val floatingButton: Boolean = true,
     val floatingX: Int = 24,
     val floatingY: Int = 400,
+    val floatingSizeDp: Float = 48f,
+    /** Opacity of the floating button itself (its menu stays opaque). */
+    val floatingOpacity: Float = 0.8f,
     val volumePeek: Boolean = true,
     val restoreVolume: Boolean = true,
     val autoOffMinutes: Int = 0,
@@ -55,6 +58,8 @@ class SettingsRepository(context: Context, private val scope: CoroutineScope) {
             floatingButton = p[FLOATING_BUTTON] ?: true,
             floatingX = p[FLOATING_X] ?: 24,
             floatingY = p[FLOATING_Y] ?: 400,
+            floatingSizeDp = p[FLOATING_SIZE] ?: 48f,
+            floatingOpacity = p[FLOATING_OPACITY] ?: 0.8f,
             volumePeek = p[VOLUME_PEEK] ?: true,
             restoreVolume = p[RESTORE_VOLUME] ?: true,
             autoOffMinutes = p[AUTO_OFF] ?: 0,
@@ -70,6 +75,8 @@ class SettingsRepository(context: Context, private val scope: CoroutineScope) {
     fun setLocked(v: Boolean) = edit { it[LOCKED] = v }
     fun setFloatingButton(v: Boolean) = edit { it[FLOATING_BUTTON] = v }
     fun setFloatingPosition(x: Int, y: Int) = edit { it[FLOATING_X] = x; it[FLOATING_Y] = y }
+    fun setFloatingSizeDp(v: Float) = edit { it[FLOATING_SIZE] = v }
+    fun setFloatingOpacity(v: Float) = edit { it[FLOATING_OPACITY] = v }
     fun setVolumePeek(v: Boolean) = edit { it[VOLUME_PEEK] = v }
     fun setRestoreVolume(v: Boolean) = edit { it[RESTORE_VOLUME] = v }
     fun setAutoOffMinutes(v: Int) = edit { it[AUTO_OFF] = v }
@@ -103,6 +110,8 @@ class SettingsRepository(context: Context, private val scope: CoroutineScope) {
         val FLOATING_BUTTON = booleanPreferencesKey("floating_button")
         val FLOATING_X = intPreferencesKey("floating_x")
         val FLOATING_Y = intPreferencesKey("floating_y")
+        val FLOATING_SIZE = floatPreferencesKey("floating_size_dp")
+        val FLOATING_OPACITY = floatPreferencesKey("floating_opacity")
         val VOLUME_PEEK = booleanPreferencesKey("volume_peek")
         val RESTORE_VOLUME = booleanPreferencesKey("restore_volume")
         val AUTO_OFF = intPreferencesKey("auto_off_minutes")

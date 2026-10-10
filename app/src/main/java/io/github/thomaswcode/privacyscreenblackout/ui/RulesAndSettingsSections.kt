@@ -36,6 +36,7 @@ import io.github.thomaswcode.privacyscreenblackout.data.Settings
 import io.github.thomaswcode.privacyscreenblackout.model.Layout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 private data class AppEntry(val pkg: String, val label: String)
 
@@ -128,6 +129,10 @@ fun SettingsSection(settings: Settings) {
     val s = App.instance.settings
     Section("Settings") {
         SwitchRow("Floating button", "Tap for a menu; press and hold to peek; drag to move.", settings.floatingButton, s::setFloatingButton)
+        if (settings.floatingButton) {
+            CommitSlider("Button size", settings.floatingSizeDp, 32f..96f, { "${it.roundToInt()} dp" }, s::setFloatingSizeDp)
+            OpacitySlider("Button opacity", settings.floatingOpacity, 0.2f..1f, s::setFloatingOpacity)
+        }
         SwitchRow(
             "Volume-down peek",
             "Press volume-down, then press again and hold to peek; release to hide. The first press still lowers volume one step.",
@@ -147,7 +152,7 @@ fun SettingsSection(settings: Settings) {
                 )
             }
         }
-        OpacitySlider("Default opacity", settings.defaultOpacity, s::setDefaultOpacity)
+        OpacitySlider("Default opacity", settings.defaultOpacity, onCommit = s::setDefaultOpacity)
         Text("Default colour", style = MaterialTheme.typography.bodyLarge)
         ColorPicker(settings.defaultColor, s::setDefaultColor)
     }

@@ -58,10 +58,10 @@ class FloatingButton(
     )
     private var attached = false
     private var model = Model(showing = false, locked = false, hasLayouts = false)
+    private var sizePx = (DEFAULT_SIZE_DP * dp).toInt()
 
     init {
-        val size = (BUTTON_DP * dp).toInt()
-        root.addView(bubble, LinearLayout.LayoutParams(size, size))
+        root.addView(bubble, LinearLayout.LayoutParams(sizePx, sizePx))
         root.addView(menu)
         bubble.setOnTouchListener(DragTouchListener())
         bubble.setOnClickListener { toggleMenu() }
@@ -93,6 +93,17 @@ class FloatingButton(
         runCatching { wm.removeViewImmediate(root) }
         attached = false
         show(params.x, params.y)
+    }
+
+    /** Applies the user's size (dp) and opacity (0–1) settings to the round button. */
+    fun setAppearance(sizeDp: Float, opacity: Float) {
+        val px = (sizeDp * dp).toInt()
+        bubble.alpha = opacity.coerceIn(MIN_OPACITY, 1f)
+        if (px == sizePx) return
+        sizePx = px
+        bubble.layoutParams = LinearLayout.LayoutParams(px, px)
+        clampToScreen()
+        if (attached) runCatching { wm.updateViewLayout(root, params) }
     }
 
     fun setModel(m: Model) {
@@ -141,9 +152,8 @@ class FloatingButton(
 
     private fun clampToScreen() {
         val (w, h) = OverlayWindows.screenSize(context)
-        val size = (BUTTON_DP * dp).toInt()
-        params.x = params.x.coerceIn(0, (w - size).coerceAtLeast(0))
-        params.y = params.y.coerceIn(0, (h - size).coerceAtLeast(0))
+        params.x = params.x.coerceIn(0, (w - sizePx).coerceAtLeast(0))
+        params.y = params.y.coerceIn(0, (h - sizePx).coerceAtLeast(0))
     }
 
     private inner class DragTouchListener : View.OnTouchListener {
@@ -199,7 +209,7 @@ class FloatingButton(
 
     /** The round button itself: a screen outline, filled when the mask is showing, with a dot when locked. */
     private inner class Bubble(context: Context) : View(context) {
-        private val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(200, 0x20, 0x21, 0x24) }
+        private val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(0x20, 0x21, 0x24) }
         private val fg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; style = Paint.Style.STROKE; strokeWidth = 2 * dp }
         private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
         private val lock = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(0xFF, 0xC1, 0x07) }
@@ -223,7 +233,8 @@ class FloatingButton(
 
     private companion object {
         const val TAG = "FloatingButton"
-        const val BUTTON_DP = 48f
+        const val DEFAULT_SIZE_DP = 48f
+        const val MIN_OPACITY = 0.2f
         const val LONG_PRESS_MS = 350L
     }
 }
