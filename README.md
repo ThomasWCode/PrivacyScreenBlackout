@@ -13,6 +13,49 @@ A personal Android app (debug APK, sideloaded) that blacks out parts of the scre
 4. Enable *Settings → Accessibility → Installed apps → Privacy Screen Blackout*.
 5. Open the app and follow the setup checklist (notifications, Quick Settings tile).
 
+## Use
+
+- **Draw a mask:** open the app → **Edit on screen** (or the notification's **Edit**, or the floating button → **Edit**). The editor appears over whatever app is underneath.
+  - **Rect / Lasso / Brush:** draw a rectangle, a closed freehand shape, or a brush stroke (adjust **Width**).
+  - **Keep / Black:** *Keep* shapes stay visible and everything else goes black. *Black* shapes are blacked out. Later shapes win over earlier ones.
+  - **Select:** tap a shape to select it, drag to move it, or drag a corner dot to resize a rectangle. **Delete** removes it, and Keep/Black changes it.
+  - **Undo / Redo / Invert / Clear**, and **⇅ Move bar** to move the toolbar to the top or bottom.
+  - **✓ Done** saves into the active layout; **Save as new** creates a new layout.
+- **Orientation:** each layout has a separate portrait and landscape mask. Rotate the phone, then edit to draw the other one. Rotating while editing cancels the edit.
+- **Show / hide:**
+  - Quick Settings tile.
+  - Notification actions.
+  - Floating button (tap for the menu).
+  - The app itself.
+- **Peek:**
+  - Press and hold the floating button.
+  - Or press volume-down, then press it again within about 0.35 s and hold. Release to hide again. The first press still lowers volume one step; *Restore volume after peek* raises it back.
+  - A peek ends automatically after 15 s.
+- **Per-app layouts:** *Per-app layouts → Add app*. When that app comes to the front, its layout shows automatically. It hides again when you leave, and your previous layout is restored.
+- **Lock:** stops Hide, Edit and Peek from the floating button, tile and volume key. Unlock in the app or from the notification.
+- **Auto-off:** hides the mask after 5–60 minutes. It applies even while locked.
+
+## Limitations
+
+- **Touch blocking along curved edges is approximate.** Black areas swallow taps using a grid of rectangular windows. Visible areas always receive taps, but thin black slivers along curved or diagonal edges may let taps through.
+- **The pull-down shade, lock screen and some system dialogs** draw above accessibility overlays, so they are not masked.
+- **No blur:** that would need screen capture, which is outside this app's scope.
+- **Screenshots and recordings** are expected to include the mask, but this has not yet been checked on a device.
+- **The app never reads screen content.** The accessibility service only receives window-change events (to know which app is in front) and key events (volume peek).
+
+## On-device test checklist
+
+- [ ] Mask covers the status bar, navigation bar and notch.
+- [ ] Taps work in Keep areas and are swallowed in black areas.
+- [ ] Rotation swaps the portrait and landscape layouts.
+- [ ] Per-app rule shows and hides the mask and restores the previous layout.
+- [ ] Tile and notification actions work.
+- [ ] Floating button: drag, menu and hold-to-peek work.
+- [ ] Volume: a single press changes volume normally; double-press-and-hold peeks and ends on release.
+- [ ] Auto-off and lock work.
+- [ ] The mask comes back after a reboot.
+- [ ] A new CI build installs over the old one and keeps your layouts.
+
 ## Build
 
 ### CI (default)
