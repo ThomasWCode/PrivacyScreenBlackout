@@ -1,0 +1,64 @@
+name: Build debug APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install SDK platform
+        run: sdkmanager "platforms;android-37.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode debug keystore
+        env:
+          DEBUG_KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE_B64" ]; then
+            echo "$DEBUG_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/debug.keystore"
+            echo "DEBUG_KEYSTORE_PATH=$RUNNER_TEMP/debug.keystore" >> "$GITHUB_ENV"
+          else
+            echo "::warning::DEBUG_KEYSTORE_B64 secret is not set. This APK is signed with a throwaway key and cannot be installed over a previous build."
+          fi
+
+      - name: Lint, test and build
+        run: ./gradlew lintDebug testDebugUnitTest assembleDebug
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk PrivacyScreenBlackout-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PrivacyScreenBlackout-debug
+          path: PrivacyScreenBlackout-debug.apk
+
+      - name: Publish pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="debug-$(echo "$GITHUB_REF_NAME" | tr -c 'A-Za-z0-9._-' '-' | sed 's/-*$//')"
+          gh release delete "$TAG" --yes --cleanup-tag || true
+          gh release create "$TAG" PrivacyScreenBlackout-debug.apk \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "Debug build ($GITHUB_REF_NAME #$GITHUB_RUN_NUMBER)" \
+            --notes "Debug APK built from ${GITHUB_SHA::7} on branch $GITHUB_REF_NAME."
