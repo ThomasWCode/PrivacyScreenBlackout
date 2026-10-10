@@ -199,6 +199,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         }
         // Window sizes are fixed in pixels, so resize the full-screen mask window.
         maskView?.let { v -> runCatching { wm.updateViewLayout(v, OverlayWindows.fullScreen(this, touchable = false)) } }
+        floating?.onScreenChanged()
     }
 
     private fun updateScreen() {

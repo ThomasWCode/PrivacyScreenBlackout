@@ -1,5 +1,6 @@
 package io.github.thomaswcode.privacyscreenblackout.overlay
 
+import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
@@ -9,17 +10,20 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
 import android.widget.LinearLayout
 import android.widget.TextView
 import kotlin.math.abs
 
 /**
- * Small draggable button. Tap opens a mini menu; press and hold peeks under the mask until released.
+ * Small draggable button that snaps to the nearer side edge. Tap opens a mini menu; press and hold
+ * peeks under the mask until released.
  */
 class FloatingButton(
     private val context: Context,
@@ -59,19 +63,26 @@ class FloatingButton(
     private var attached = false
     private var model = Model(showing = false, locked = false, hasLayouts = false)
     private var sizePx = (DEFAULT_SIZE_DP * dp).toInt()
+    /** The round button's position. The window starts elsewhere while the menu opens to the left or above. */
+    private var buttonX = 0
+    private var buttonY = 0
+    private var onRightEdge = false
+    private var snapAnimator: ValueAnimator? = null
 
     init {
         root.addView(bubble, LinearLayout.LayoutParams(sizePx, sizePx))
-        root.addView(menu)
+        // Explicit WRAP_CONTENT: a vertical LinearLayout's default MATCH_PARENT child would be squeezed to the bubble's width.
+        root.addView(menu, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         bubble.setOnTouchListener(DragTouchListener())
         bubble.setOnClickListener { toggleMenu() }
     }
 
     fun show(x: Int, y: Int) {
         if (attached) return
-        params.x = x
-        params.y = y
-        clampToScreen()
+        buttonX = x
+        buttonY = y
+        snapNow()
+        applyLayout()
         try {
             wm.addView(root, params)
             attached = true
@@ -82,6 +93,7 @@ class FloatingButton(
 
     fun hide() {
         if (!attached) return
+        snapAnimator?.cancel()
         runCatching { wm.removeViewImmediate(root) }
         attached = false
         menu.visibility = View.GONE
@@ -92,7 +104,17 @@ class FloatingButton(
         if (!attached) return
         runCatching { wm.removeViewImmediate(root) }
         attached = false
-        show(params.x, params.y)
+        show(buttonX, buttonY)
+    }
+
+    /** Keeps the button on the same side edge after the screen size changes, e.g. on rotation. */
+    fun onScreenChanged() {
+        if (!attached) return
+        snapAnimator?.cancel()
+        val (w, h) = OverlayWindows.screenSize(context)
+        buttonX = if (onRightEdge) (w - sizePx).coerceAtLeast(0) else 0
+        buttonY = FloatingButtonGeometry.clampY(buttonY, sizePx, h)
+        relayout()
     }
 
     /** Applies the user's size (dp) and opacity (0–1) settings to the round button. */
@@ -102,8 +124,8 @@ class FloatingButton(
         if (px == sizePx) return
         sizePx = px
         bubble.layoutParams = LinearLayout.LayoutParams(px, px)
-        clampToScreen()
-        if (attached) runCatching { wm.updateViewLayout(root, params) }
+        snapNow()
+        relayout()
     }
 
     fun setModel(m: Model) {
@@ -120,7 +142,7 @@ class FloatingButton(
             buildMenu()
             menu.visibility = View.VISIBLE
         }
-        if (attached) runCatching { wm.updateViewLayout(root, params) }
+        relayout()
     }
 
     private fun buildMenu() {
@@ -146,14 +168,66 @@ class FloatingButton(
         if (enabled) setOnClickListener {
             onClick()
             menu.visibility = View.GONE
-            if (attached) runCatching { wm.updateViewLayout(root, params) }
+            relayout()
         }
     }
 
-    private fun clampToScreen() {
+    /** Moves the button straight to the nearer side edge, e.g. for a saved position or a new size. */
+    private fun snapNow() {
+        snapAnimator?.cancel()
         val (w, h) = OverlayWindows.screenSize(context)
-        params.x = params.x.coerceIn(0, (w - sizePx).coerceAtLeast(0))
-        params.y = params.y.coerceIn(0, (h - sizePx).coerceAtLeast(0))
+        buttonX = FloatingButtonGeometry.snapX(buttonX, sizePx, w)
+        buttonY = FloatingButtonGeometry.clampY(buttonY, sizePx, h)
+        onRightEdge = buttonX > 0
+    }
+
+    /** Slides the button to the nearer side edge after a drag and saves where it ends up. */
+    private fun animateSnap() {
+        val (w, _) = OverlayWindows.screenSize(context)
+        val target = FloatingButtonGeometry.snapX(buttonX, sizePx, w)
+        onRightEdge = target > 0
+        callbacks.onMoved(target, buttonY)
+        snapAnimator?.cancel()
+        snapAnimator = ValueAnimator.ofInt(buttonX, target).apply {
+            duration = SNAP_MS
+            interpolator = DecelerateInterpolator()
+            addUpdateListener {
+                buttonX = it.animatedValue as Int
+                relayout()
+            }
+            start()
+        }
+    }
+
+    /** Sets the window position from the button position, opening the menu towards the roomier side. */
+    private fun applyLayout() {
+        if (menu.visibility != View.VISIBLE) {
+            params.x = buttonX
+            params.y = buttonY
+            return
+        }
+        val (w, h) = OverlayWindows.screenSize(context)
+        val unspecified = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        menu.measure(unspecified, unspecified)
+        val p = FloatingButtonGeometry.placeMenu(buttonX, buttonY, sizePx, menu.measuredWidth, menu.measuredHeight, w, h)
+        root.gravity = if (p.alignEnd) Gravity.END else Gravity.START
+        if ((root.getChildAt(0) === menu) != p.menuAbove) {
+            root.removeAllViews()
+            if (p.menuAbove) {
+                root.addView(menu)
+                root.addView(bubble)
+            } else {
+                root.addView(bubble)
+                root.addView(menu)
+            }
+        }
+        params.x = p.x
+        params.y = p.y
+    }
+
+    private fun relayout() {
+        applyLayout()
+        if (attached) runCatching { wm.updateViewLayout(root, params) }
     }
 
     private inner class DragTouchListener : View.OnTouchListener {
@@ -174,8 +248,9 @@ class FloatingButton(
         override fun onTouch(v: View, e: MotionEvent): Boolean {
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    snapAnimator?.cancel()
                     downRawX = e.rawX; downRawY = e.rawY
-                    startX = params.x; startY = params.y
+                    startX = buttonX; startY = buttonY
                     dragging = false; peeking = false
                     handler.postDelayed(longPress, LONG_PRESS_MS)
                 }
@@ -185,19 +260,20 @@ class FloatingButton(
                     if (!peeking && !dragging && (abs(dx) > slop || abs(dy) > slop)) {
                         dragging = true
                         handler.removeCallbacks(longPress)
+                        menu.visibility = View.GONE
                     }
                     if (dragging) {
-                        params.x = startX + dx.toInt()
-                        params.y = startY + dy.toInt()
-                        clampToScreen()
-                        if (attached) runCatching { wm.updateViewLayout(root, params) }
+                        val (w, h) = OverlayWindows.screenSize(context)
+                        buttonX = (startX + dx.toInt()).coerceIn(0, (w - sizePx).coerceAtLeast(0))
+                        buttonY = FloatingButtonGeometry.clampY(startY + dy.toInt(), sizePx, h)
+                        relayout()
                     }
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     handler.removeCallbacks(longPress)
                     when {
                         peeking -> callbacks.onPeek(false)
-                        dragging -> callbacks.onMoved(params.x, params.y)
+                        dragging -> animateSnap()
                         e.actionMasked == MotionEvent.ACTION_UP -> v.performClick()
                     }
                     dragging = false; peeking = false
@@ -236,5 +312,6 @@ class FloatingButton(
         const val DEFAULT_SIZE_DP = 48f
         const val MIN_OPACITY = 0.2f
         const val LONG_PRESS_MS = 350L
+        const val SNAP_MS = 180L
     }
 }
