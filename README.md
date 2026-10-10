@@ -4,9 +4,9 @@ A personal Android app (debug APK, sideloaded) that blacks out parts of the scre
 
 ## Install on your phone
 
-1. Open the repository's **Releases** page on your phone and download `PrivacyScreenBlackout-debug.apk` from the `debug-<branch>` pre-release.
-2. When prompted, allow your browser to **Install unknown apps**, then install.
-3. **Allow restricted settings** (Android 13+). Sideloaded apps cannot turn on Accessibility until you do this:
+1. Build the debug APK (see [Build](#build)). No APKs are published on GitHub.
+2. Connect the phone with USB debugging on, then run `adb install -r app/build/outputs/apk/debug/app-debug.apk`.
+3. **Allow restricted settings** (Android 13+, only if you installed the APK from a file manager or browser rather than adb). Such sideloaded apps cannot turn on Accessibility until you do this:
    - Open *Settings → Apps → Privacy Screen Blackout*.
    - Tap **⋮** (top right) → **Allow restricted settings** and confirm.
    - If the menu item is missing, first try to enable the Accessibility Service (step 4) once. Android shows a "Restricted setting" dialog, after which the menu item appears.
@@ -41,7 +41,7 @@ A personal Android app (debug APK, sideloaded) that blacks out parts of the scre
 - **Touch blocking along curved edges is approximate.** Black areas swallow taps using a grid of rectangular windows. Visible areas always receive taps, but thin black slivers along curved or diagonal edges may let taps through.
 - **The pull-down shade, lock screen and some system dialogs** draw above accessibility overlays, so they are not masked.
 - **No blur:** that would need screen capture, which is outside this app's scope.
-- **Screenshots and recordings** are expected to include the mask, but this has not yet been checked on a device.
+- **Screenshots include the mask** (checked on a Galaxy S24). Screen recordings have not been checked yet.
 - **The app never reads screen content.** The accessibility service only receives window-change events (to know which app is in front) and key events (volume peek).
 
 ## On-device test checklist
@@ -55,28 +55,12 @@ A personal Android app (debug APK, sideloaded) that blacks out parts of the scre
 - [ ] Volume: a single press changes volume normally; double-press-and-hold peeks and ends on release.
 - [ ] Auto-off and lock work.
 - [ ] The mask comes back after a reboot.
-- [ ] A new CI build installs over the old one and keeps your layouts.
+- [ ] A new build installs over the old one and keeps your layouts.
 
 ## Build
 
-### CI (default)
-Every push runs `.github/workflows/build-debug-apk.yml`. It lints, runs the unit tests, builds the debug APK, and replaces the `debug-<branch>` pre-release with the new APK.
-
-#### One-off: fixed signing key
-Android only installs an update over an existing app if both are signed with the same key. Add the keystore as a repository secret so every CI build can update the installed app (and keep your layouts):
-
-1. *GitHub → repository → Settings → Secrets and variables → Actions → New repository secret*.
-2. Name: `DEBUG_KEYSTORE_B64`. Value: the base64 text of the debug keystore (one line).
-
-Without the secret, CI still builds but signs with a throwaway key. You would then need to uninstall the app before installing each new build.
-
-To make your own keystore instead:
-```bash
-keytool -genkeypair -keystore privacyblackout-debug.keystore -storepass android -keypass android \
-  -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
-  -dname "CN=Android Debug,O=Android,C=US" -storetype PKCS12
-base64 -w0 privacyblackout-debug.keystore   # paste output into the secret
-```
+### CI
+Every push runs `.github/workflows/ci.yml`. It lints, runs the unit tests and builds the debug APK as a check only. No APK is uploaded or released.
 
 ### Locally
 Requirements:
@@ -100,4 +84,10 @@ Commands:
 adb install -r app/build/outputs/apk/debug/app-debug.apk   # install over USB (optional)
 ```
 
-To sign a local build with the same key as CI, set `DEBUG_KEYSTORE_PATH=/path/to/privacyblackout-debug.keystore` before building.
+#### Signing key
+Android only installs an update over an existing app if both are signed with the same key. Builds from one machine share its default debug key. To build on several machines and still update the installed app (and keep your layouts), make one keystore and set `DEBUG_KEYSTORE_PATH=/path/to/privacyblackout-debug.keystore` before building:
+```bash
+keytool -genkeypair -keystore privacyblackout-debug.keystore -storepass android -keypass android \
+  -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+  -dname "CN=Android Debug,O=Android,C=US" -storetype PKCS12
+```

@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// CI passes a fixed debug keystore so every build can be installed over the previous one.
+// Optional fixed debug keystore, so builds from different machines can be installed over each other.
 val ciKeystorePath: String? = System.getenv("DEBUG_KEYSTORE_PATH")?.takeIf { it.isNotBlank() && file(it).exists() }
 
 android {
