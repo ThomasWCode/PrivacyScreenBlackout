@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Privacy Screen Blackout</string>
+    <string name="tile_label">Blackout</string>
+    <string name="accessibility_summary">Draws a privacy mask over other apps.</string>
+    <string name="accessibility_description">Privacy Screen Blackout uses this service to draw a black mask over other apps while leaving the areas you choose visible and usable. It watches which app is in front (to apply per-app layouts) and the volume-down key (double-press and hold to peek). It does not read or store anything shown on screen.</string>
 </resources>
