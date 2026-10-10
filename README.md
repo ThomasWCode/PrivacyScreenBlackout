@@ -25,7 +25,7 @@ A personal Android app (debug APK, sideloaded) that blacks out parts of the scre
 - **Show / hide:**
   - Quick Settings tile.
   - Notification actions.
-  - Floating button (tap for the menu).
+  - Floating button: tap for the menu. Drag it up or down; it snaps to the nearer side edge, and the menu opens towards the middle of the screen.
   - The app itself.
 - **Peek:**
   - Press and hold the floating button.
@@ -51,7 +51,7 @@ A personal Android app (debug APK, sideloaded) that blacks out parts of the scre
 - [ ] Rotation swaps the portrait and landscape layouts.
 - [ ] Per-app rule shows and hides the mask and restores the previous layout.
 - [ ] Tile and notification actions work.
-- [ ] Floating button: drag, menu and hold-to-peek work.
+- [ ] Floating button: drag, edge snap, menu and hold-to-peek work.
 - [ ] Volume: a single press changes volume normally; double-press-and-hold peeks and ends on release.
 - [ ] Auto-off and lock work.
 - [ ] The mask comes back after a reboot.
