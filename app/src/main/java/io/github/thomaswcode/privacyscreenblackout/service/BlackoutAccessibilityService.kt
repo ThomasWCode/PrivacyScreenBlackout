@@ -130,6 +130,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         if (settings.floatingButton && !state.editing) {
             val button = fb ?: FloatingButton(themed, wm, floatingCallbacks).also { floating = it }
             button.setModel(FloatingButton.Model(state.showing, settings.locked, layouts.isNotEmpty()))
+            button.setAppearance(settings.floatingSizeDp, settings.floatingOpacity)
             if (fb == null) button.show(settings.floatingX, settings.floatingY)
             else if (blockersChanged) button.bringToFront()
         } else if (fb != null) {

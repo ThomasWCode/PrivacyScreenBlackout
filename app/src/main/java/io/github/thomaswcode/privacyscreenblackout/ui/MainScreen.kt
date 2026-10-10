@@ -117,13 +117,24 @@ fun SwitchRow(title: String, subtitle: String?, checked: Boolean, onChange: (Boo
 
 /** Opacity slider that only saves when the drag ends, to avoid a write per frame. */
 @Composable
-fun OpacitySlider(label: String, value: Float, onCommit: (Float) -> Unit) {
+fun OpacitySlider(label: String, value: Float, range: ClosedFloatingPointRange<Float> = 0.4f..1f, onCommit: (Float) -> Unit) =
+    CommitSlider(label, value, range, { "${(it * 100).roundToInt()}%" }, onCommit)
+
+/** Slider that shows its live value but only saves when the drag ends. */
+@Composable
+fun CommitSlider(
+    label: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    format: (Float) -> String,
+    onCommit: (Float) -> Unit,
+) {
     var local by remember(value) { mutableFloatStateOf(value) }
-    Text("$label ${(local * 100).roundToInt()}%", style = MaterialTheme.typography.bodyLarge)
+    Text("$label ${format(local)}", style = MaterialTheme.typography.bodyLarge)
     Slider(
         value = local,
         onValueChange = { local = it },
         onValueChangeFinished = { onCommit(local) },
-        valueRange = 0.4f..1f,
+        valueRange = range,
     )
 }

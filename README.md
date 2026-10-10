@@ -32,6 +32,7 @@ A personal Android app (debug APK, sideloaded) that blacks out parts of the scre
   - Or press volume-down, then press it again within about 0.35 s and hold. Release to hide again. The first press still lowers volume one step; *Restore volume after peek* raises it back.
   - A peek ends automatically after 15 s.
 - **Per-app layouts:** *Per-app layouts → Add app*. When that app comes to the front, its layout shows automatically. It hides again when you leave, and your previous layout is restored.
+- **Controls on/off:** *Settings → Floating button* and *Settings → Volume-down peek* turn each control on or off. With the floating button on, *Button size* (32–96 dp) and *Button opacity* (20–100%) adjust it. Its menu always stays fully opaque so you can read it.
 - **Lock:** stops Hide, Edit and Peek from the floating button, tile and volume key. Unlock in the app or from the notification.
 - **Auto-off:** hides the mask after 5–60 minutes. It applies even while locked.
 
